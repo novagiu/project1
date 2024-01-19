@@ -1,22 +1,27 @@
-import numpy as np
-import pandas as pd 
 import streamlit as st
+import pandas as pd
+import numpy as pandas
+import os
 
-list_of_numbers = [23,12,13, 1, -2]
-series_of_numbers = pd.Series(list_of_numbers)
-v_1 = [8, 12, -3, 78, -1]
-v_2 = [90, 23, -212, 0, 21]
+st.title("""Sentiments in social medias""")
+st.write('Социальные сети стали неотъемлемой частью нашей жизни. Они влияют на многие сферы: социальная жизнь, бизнес, маркетинг и др. Там люди выражают свои эмоции и мнения, которые вдальнейшем отражаются на этих сферах. На примере реальных данных из популярных социальных сетей мы попробуем проанализоровать их и сделать выводы.')
 
-vector_1 = np.array(v_1)
-vector_2 = np.array(v_2)
+st.write('Для начала ознакомимся с данными, с которыми будет работать. Здесь собрана информация из социальных сетей Facebook, Twitter(X) и Instagram за период времени...')
 
-st.write("""
-# My first app
-Hello *world!*
-""")
+#чтение csv файла и проверка наличия csv по данному адресу
+csv_path="C:\\Users\\Xiaomi\\Desktop\\project\\.vscode\\sentimentdataset.csv"
+
+if os.path.exists(csv_path):
+    df=pd.read_csv(csv_path)
+    st.write(df)
+else:(f"File '{csv_path}' not found. Please check the path.")
 
 
 
-print(vector_1)
-print(vector_2)
-print(series_of_numbers)
+
+
+
+
+
+
+
