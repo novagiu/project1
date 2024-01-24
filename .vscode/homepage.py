@@ -7,37 +7,81 @@ import io
 import os
 import re
 
+#setting page options
 st.set_page_config(
     page_title="Sentiments in social media",
-    page_icon="👩",
-    #layout="wide",
+    page_icon="😃",
 )
 
 st.title("""Sentiments in social media""")
-st.text('Social networks have become an integral part of our lives. They influence many areas: social life, business, marketing, etc. There people express their emotions and opinions, which are further reflected in these areas. Using real data from popular social networks as an example, we will try to analyze them and draw conclusions.')
 
-st.text("""First, let's get acquainted with the data with which we will work. Here is collected information from social networks Facebook, Twitter(X) and Instagram for a period of time""")
+#adding the image
+image_url="https://colibriwp.com/blog/wp-content/uploads/2021/06/image9-1.png"
+st.image(image_url, caption='Sentiments Image', use_column_width=True)
 
 #reading a csv file and checking if a csv is available at a given address
 csv_path="C:\\Users\\Xiaomi\\Desktop\\project\\.vscode\\sentimentdataset.csv"
 
 if os.path.exists(csv_path):
     sentiment_df=pd.read_csv(csv_path, header=0)
-    #st.dataframe(sentiment_df)
+    st.text('Dataset:')
+    st.dataframe(sentiment_df)
+    st.markdown("[Kaggle](https://www.kaggle.com/datasets/kashishparmar02/social-media-sentiments-analysis-dataset/)", unsafe_allow_html=True)
 else:(f"File '{csv_path}' not found. Please check the path.")
 
-
+#display last rows of dataset
 st.text(f'Numbers of rows and columns: {sentiment_df.shape}')
-#first few rows of the data set
-st.text('First few rows of the data set')
-st.dataframe(sentiment_df.head(10))
+st.text('Last rows of the data set:')
+st.dataframe(sentiment_df.tail())
+
+#statistics on likes
+max_likes = sentiment_df['Likes'].max()
+min_likes = sentiment_df['Likes'].min()
+average_likes = sentiment_df['Likes'].mean()
+show_likes_button = st.button("Show Likes Statistics")
+if show_likes_button:
+    st.write(f"Maximum number of likes: {max_likes}")
+    st.write(f"Minimum number of likes: {min_likes}")
+    st.write(f"Average number of likes: {average_likes}")
+
+#statistics on retweets
+max_retweets = sentiment_df['Retweets'].max()
+min_retweets = sentiment_df['Retweets'].min()
+average_retweets = sentiment_df['Retweets'].mean()
+show_retweets_button = st.button("Show Retweets Statistics")
+if show_retweets_button:
+    st.write(f"Maximum number of retweets: {max_retweets}")
+    st.write(f"Minimum number of retweets: {min_retweets}")
+    st.write(f"Average number of retweets: {average_retweets}")
+
+#statistics by date
+first_date = sentiment_df['Timestamp'].min()
+last_date =sentiment_df['Timestamp'].max()
+first_post = sentiment_df[sentiment_df['Timestamp'] == first_date]
+last_post = sentiment_df[sentiment_df['Timestamp'] == last_date]
+
+show_dates_button = st.button("Show Earliest and Latest Dates")
+if show_dates_button:  
+    st.write(f"The earliest date: {first_date}")
+    st.write("Post on the earliest date:")
+    st.write(first_post[['Text', 'Likes', 'Retweets']])
+
+    st.write(f"\nThe latest date: {last_date}")
+    st.write("Post on the latest date:")
+    st.write(last_post[['Text', 'Likes', 'Retweets']])
+
+#display of countries
+unique_countries=sentiment_df['Country'].unique()
+if st.button('Show Countries'):
+    st.write('Countries:', unique_countries)
+
 
 #display statistical information
-st.text('Statistical information')
+st.text('Statistical information:')
 st.dataframe(sentiment_df.describe().T)
 
 #display the types of data
-st.text('The types of data')
+st.text('The types of data:')
 data_types=sentiment_df.dtypes
 st.dataframe(data_types)
 
@@ -51,20 +95,19 @@ st.text(db_info_buffer.getvalue())
 #data cleaning
 st.title('Data cleaning')
 st.text('In order to make it more convenient to work with the data, we must clean it.')
- #In our case, remove what does not convey the mood in the texts, this includes pronouns, prepositions, and articles. We will also remove emoticons and signs.
-#remove the first two columns, since they do not contain useful information, but only index rows
 
-st.text("First, let’s remove the columns that don’t make sense.")
-#Exploring the columns of a dataset
-st.text('The columns of a dataset')
-st.dataframe(sentiment_df.columns)
-#removing unnamed columns
-cleaned_df=(sentiment_df.drop(columns=['Unnamed: 0.1','Unnamed: 0']))
+#exploring the columns of a dataset
+if st.button('Show Dataset Columns'):
+    st.text('The columns of a dataset:')
+    st.dataframe(sentiment_df.columns)
+#removing unnamed columns and columns of month, day, hour
+cleaned_df=sentiment_df.drop(columns=['Unnamed: 0.1','Unnamed: 0','Month','Day','Hour'])
 
-#Check for missing values in a dataset
+#сheck for missing values in a dataset
+st.text('Checking for missing values in a dataset.')
 st.text(cleaned_df.isnull().sum())
 
-#data cleaning function
+#text clearing function
 def data_cleaning(Text):
     Text = Text.lower()
     Text = re.sub(r'[^\w\s]','',Text)
@@ -76,47 +119,43 @@ cleaned_df['Platform'] = cleaned_df['Platform'].str.strip()
 cleaned_df['Hashtag'] = cleaned_df['Hashtags'].str.strip()
 cleaned_df['Country'] = cleaned_df['Country'].str.strip()
 
-# Функция для очистки хэштегов
-def clean_hashtags(hashtag_string):
-    # Разбиваем строку по пробелам и убираем дубликаты
-    hashtags = list(set(hashtag_string.split()))
-    # Убираем символ '#' из каждого хэштега
-    return ' '.join(hashtags)
-
-cleaned_df['Hashtags'] = sentiment_df['Hashtags'].apply(clean_hashtags)
-
-#display the cleaned dataset
-st.dataframe(cleaned_df)
+#deviding the hashtags column'
+cleaned_df[['Hashtag1', 'Hashtag2']] = cleaned_df['Hashtags'].str.split(expand=True, n=1)
+cleaned_df = cleaned_df.drop(columns=['Hashtag'])
+cleaned_df = cleaned_df.drop(columns=['Hashtags'])
 
 #comparing the original text with the cleaned text
+st.text('Comparing the original text with the cleaned text.')
 cleaned_df['Cleaned_Text'] = cleaned_df['Text'].apply(data_cleaning)
 st.dataframe(cleaned_df[['Text', 'Cleaned_Text']].iloc[0:4])
+
+#replacing column Text to column Cleaned_Text
+cleaned_df['Text'] = cleaned_df['Cleaned_Text']
+cleaned_df=cleaned_df.drop(columns=['Cleaned_Text'])
+
+st.text('Cleaned dataset')
+st.text(f'Numbers of rows and columns: {cleaned_df.shape}')
+st.text('The text was replaced. Spaces were removed in columns Sentiment,Platform,Hashtag and Country.')
+st.text('Duplicate columns removed. Hashtags were divided into 2 columns.')
+st.dataframe(cleaned_df)
 
 #display the plots
 st.title("Interesting plots")
 
-#data_types=cleaned_df.dtypes
-#st.dataframe(data_types)
-
-# Count the occurrences of each sentiment
+#calculate the sentiments
+st.text('Сalculating the sentiments of posts to view them on a chart.')
 sentiment_counts = cleaned_df['Sentiment'].value_counts()
-#Convert Series to DataFrame
+# Convert Series to DataFrame
 sentiment_counts_df = sentiment_counts.to_frame().reset_index()
 sentiment_counts_df.columns = ['Sentiment', 'Count']
 st.dataframe(sentiment_counts_df)
-# Print data types of sentiment_counts_df
-#data_types = sentiment_counts_df.dtypes
-#st.text("Типы данных в DataFrame:")
-#st.dataframe(data_types)
 
 #categorize sentiments
 positive_sentiments =[' Positive ', 'Happy', 'Joy', 'Excitement', 'Contentment', 'Gratitude', 'Curiosity', 'Serenity', 'Nostalgia', 'Awe', 'Hopeful', 'Euphoria', 'Elation', 'Enthusiasm', 'Pride', 'Determination', 'Playful', 'Inspiration', 'Hope', 'Happiness', 'Inspired', 'Empowerment', 'Proud', 'Grateful', 'Thrill', 'Overwhelmed', 'Compassionate', 'Reflection', 'Enchantment', 'Admiration', 'Reverence', 'Fulfillment', 'Compassion', 'Tenderness', 'Amusement', 'Arousal', 'Adventure', 'Satisfaction', 'Wonder', 'Accomplishment', 'Creativity', 'Harmony', 'Kind', 'Love', 'Confident', 'Free-spirited', 'Empathetic', 'Resilient', 'Rejuvenation', 'Relief', 'Creative Inspiration', 'Celestial Wonder', "Nature's Beauty", 'Thrilling Journey', 'Winter Magic', 'Culinary Adventure', 'Mesmerizing', 'Vibrancy', 'Imagination', 'Joy in Baking', 'Breakthrough', 'Solace', 'Celebration', 'Renewed Effort', 'Challenge', 'Mindfulness', 'Energy', 'Melodic', 'Motivation', 'Culinary Odyssey', 'Artistic Burst', 'Adrenaline', 'Dazzle', 'Freedom', 'Inner Journey', 'Festive Joy', 'Joyful Reunion', 'Grandeur', 'Blessed', 'Appreciation', 'Confidence', 'Wonderment', 'Optimism', 'Pensive', 'Playful Joy', 'Elegance', 'Immersion', 'Spark', 'Marvel', 'Overjoyed', 'DreamChaser', 'Romance', 'Amazement', 'Success', 'Friendship', 'Kindness', 'Positivity', 'Solitude', 'Coziness', 'Whimsy', 'Contemplation']
 negative_sentiments =['Despair', 'Grief', 'Sad', 'Loneliness', 'Embarrassed', 'Regret', 'Frustration', 'Ambivalence', 'Melancholy', 'Numbness', 'Bad', 'Hate', 'Surprise', 'Bitterness', 'Frustrated', 'Betrayal', 'Disgust', 'Shame', 'Jealousy', 'Sorrow', 'Loss', 'Mischievous', 'Disappointment', 'Isolation', 'Coziness', 'Intimidation', 'Anxiety', 'Helplessness', 'Envy', 'Anger', 'Zest', 'Yearning', 'Apprehensive', 'Fear', 'Sadness', 'Enjoyment', 'Adoration', 'Affection', 'Disappointed', 'Engagement', 'Obstacle', 'Heartwarming', 'Triumph', 'Suspense', 'Touched', 'Devastated', 'Heartbreak', 'Ruins', 'Desperation', 'Darkness', 'Exhaustion', 'Lost Love', 'Emotional Storm', 'Suffering', 'Bittersweet', 'Intrigue']
 neutral_sentiments = ['Acceptance', 'Confusion', 'Indifference', 'Engaged', 'Dismissive', 'Confident', 'Runway Creativity', 'Sympathy', 'Iconic', 'Connection', 'Hypnotic', 'Colorful', 'Ecstasy', 'Charm', 'Journey', 'Pressure', 'Ocean\'s Freedom', 'Relief', 'Winter Magic', 'Culinary Adventure', 'Mesmerizing', 'Vibrancy', 'Imagination', 'Envisioning History', 'Joy in Baking', 'Breakthrough', 'Solace', 'Celebration', 'Miscalculation', 'Renewed Effort', 'Whispers of the Past', 'Challenge', 'Mindfulness', 'Energy', 'Melodic', 'Motivation', 'Culinary Odyssey', 'Artistic Burst', 'Adrenaline', 'Dazzle', 'Freedom', 'Inner Journey', 'Festive Joy', 'Joyful Reunion', 'Grandeur', 'Blessed', 'Appreciation', 'Confidence', 'Wonderment', 'Optimism', 'Pensive', 'Playful Joy', 'Elegance', 'Immersion', 'Spark', 'Marvel', 'DreamChaser', 'Romance', 'Amazement', 'Success', 'Friendship', 'Kindness', 'Positivity', 'Solitude', 'Coziness', 'Whimsy', 'Contemplation']
 
-
-
-#Function for filtering emotions by category and counting them
+#function for filtering emotions by category and counting them
 def filter_and_sum(dataframe, sentiments):
     selected_rows = dataframe[dataframe['Sentiment'].isin(sentiments)]
     if not selected_rows.empty:
@@ -126,11 +165,8 @@ def filter_and_sum(dataframe, sentiments):
     else:
         st.text("No matching rows found.")
         return 0
-    # Sum of values in the 'Counts' column
-    sum_counts = selected_rows['Count'].sum()
-    #st.text("Numbers of chosen sentiments:")
-    st.text(sum_counts)
-
+    
+#counting sentiments by category
 st.text('Number of posts with positive sentiment:') 
 positive_sum = filter_and_sum(sentiment_counts_df, positive_sentiments)
 st.text('Number of posts with negative sentiment:') 
@@ -138,153 +174,83 @@ negative_sum = filter_and_sum(sentiment_counts_df, negative_sentiments)
 st.text('Number of posts with neutral sentiment:') 
 neutral_sum = filter_and_sum(sentiment_counts_df, neutral_sentiments)
 
-#st.text(f'Type of neutral_sum: {type(neutral_sum)}')
-
 sentiment_categories_df = pd.DataFrame({
     'Sentiment': ['Positive', 'Negative', 'Neutral'],
     'Count': [positive_sum, negative_sum, neutral_sum]
 })
 
-st.dataframe(sentiment_categories_df)
-
 #constructing a pie chart by sentiment categories
 fig, ax = plt.subplots(figsize=(6, 6))
 sentiment_categories_series = pd.Series([positive_sum, negative_sum, neutral_sum], index=['Positive', 'Negative', 'Neutral'])
-ax.pie(sentiment_categories_series, labels=sentiment_categories_series.index, autopct='%1.1f%%', startangle=140)
-ax.set_title('Post types by sentiment categories')
-#Sentiment Distribution
-
-# Displaying the chart in Streamlit
+ax.pie(sentiment_categories_series, labels=sentiment_categories_series.index, autopct='%1.1f%%', startangle=140,colors=['green','red','yellow'])
+ax.set_title('Distribution of Sentiment Categories in Posts')
 st.pyplot(fig)
 
-# Построение столбчатой диаграммы
-fig, ax = plt.subplots(figsize=(30, 12))
-sentiment_counts_df.groupby('Sentiment')['Count'].sum().plot(kind='bar', ax=ax, color=['green', 'red', 'blue'])
-ax.set_title('Column chart for the number of posts with different sentiments')
-ax.set_xlabel('Sentiments')
-ax.set_ylabel('Numbers of posts')
-plt.legend(sentiment_counts_df['Sentiment'])
-st.pyplot(fig)  
-
-#
-# sentiment_categories_df=pd.concat([sentiment_categories_df, cleaned_df['Timestamp']])
-# st.dataframe(sentiment_categories_df)
-# # Предполагая, что вы загрузили свой набор данных в DataFrame под названием cleaned_df
-# cleaned_df['Timestamp'] = pd.to_datetime(cleaned_df['Timestamp'])
-# cleaned_df.set_index('Timestamp', inplace=True)
-# # Создание графика
-# fig, ax = plt.subplots()
-# sns.lineplot(x=cleaned_df.index, y=sentiment_categories_df['Sentiment'], data=cleaned_df)
-# plt.title('Настроение с течением времени')
-# # Отображение графика в Streamlit
-# st.pyplot(fig)
-
-# Предполагая, что вы загрузили свой набор данных в DataFrame под названием cleaned_df
-
-#ГРАФИК 3 СДЕЛАТЬ ПО ХЭШТЕГАМ
-#ГРАФИК 4 СДЕЛАТЬ ПО СТРАНАМ (ЛИБО ПОПУЛЯРНЫЕ, ГДЕ БОЛЬШЕ ПОСТЯТ И НЕ ПОПУЛЯРНЫЕ, ЛИБО ПО КОНТИНЕНТАМ ИЛИ СТРАНАМ)
-#ГРАФИК 5 СДЕЛАТЬ ПО ВРЕМЕНИ (ВЫЯСНИТЬ В КАКОЙ ПЕРИОД БЫЛИ САМЫЕ ПОЗИТИВНЫЕ И НЕГАТИВНЫЕ)
-
-#ДОБАВИТЬ ОКНА И ВЫПАДАЮЩИЕ ШТУКИ 
-
-popular_hashtags_df = cleaned_df.sort_values(by='Likes', ascending=False)
-st.dataframe(popular_hashtags_df[['Hashtags', 'Likes']].head())
-fig, ax = plt.subplots(figsize=(10, 6))
-ax.bar(popular_hashtags_df['Hashtags'], popular_hashtags_df['Likes'])
-# #Для большей наглядоности разделим эмоции на три категории 
-# fig, ax = plt.subplots(figsize=(10, 6))
-# ax.bar(popular_posts['Sentiment'], popular_posts['Likes'], color=plt.cm.viridis.colors)
-ax.set_xlabel('Hashtags')
-ax.set_ylabel('Likes')
-ax.set_title('Самые популярные хэштеги')
-plt.xticks(rotation=45, ha='right')  # Повернуть подписи на оси x для лучшей читаемости
-
-# # Вывести диаграмму в Streamlit
-st.pyplot(fig)
-
-cleaned_df['Hashtags_count'] = cleaned_df['Hashtags'].apply(lambda x: len(x.split()))
-
-# Создание бар-графика
-fig, ax = plt.subplots()
-sns.barplot(x='Sentiment', y='Hashtags_count', data=cleaned_df, ci=None)
-plt.title('Количество хэштегов по настроению')
-
-# Отображение бар-графика в Streamlit
-st.pyplot(fig)
-
-#подсчитать кол по постов по соцтесям 
-
+#creating a column chart of number of posts by platform
 platform_counts = cleaned_df['Platform'].value_counts()
-#Convert Series to DataFrame
 platform_counts_df = platform_counts.to_frame().reset_index()
 platform_counts_df.columns = ['Platform', 'Count']
 st.dataframe(platform_counts_df)
-
-
-def sum_platform(dataframe, platform):
-    selected_platform = dataframe[dataframe['Platform'].isin([platform])]
-    if not selected_platform.empty:
-        platform_sum = selected_platform['Count'].sum()
-        st.text(f"{platform} sum: {platform_sum}")
-        return platform_sum
-    else:
-        st.text(f"No matching rows found for {platform}.")
-        return 0
-
-# Пример использования для Twitter
-twitter_sum = sum_platform(platform_counts_df, 'Twitter')
-st.text(twitter_sum)
-import streamlit as st
-
-# Ваш DataFrame
-platform_counts_df = pd.DataFrame({
-    'Platform': ['Instagram', 'Twitter', 'Facebook'],
-    'Count': [258, 243, 231]
-})
-# c помощью следующего графика можем понять какая соцсеть более популярная
-# Создание столбчатой диаграммы
+st.bar_chart(platform_counts_df.set_index('Platform'))
 plt.figure(figsize=(8, 4))
 plt.bar(platform_counts_df['Platform'], platform_counts_df['Count'], color=['blue', 'green', 'red'])
-plt.xlabel('Платформа')
-plt.ylabel('Сумма постов')
-plt.title('Сумма постов для каждой платформы')
+plt.xlabel('Platform')
+plt.ylabel('Number of posts')
+plt.title('Number of posts on social media')
 plt.show()
-# Вывод столбчатой диаграммы в Streamlit
-st.bar_chart(platform_counts_df.set_index('Platform'))
 
+#filtering dataFrame for posts from the UK
+sentiment_by_country = cleaned_df.groupby(['Country', 'Sentiment']).size().reset_index(name='Count')
+sentiment_counts_df = pd.merge(sentiment_counts_df, sentiment_by_country, how='left', on='Sentiment')
+st.dataframe(sentiment_counts_df)
+uk_data = sentiment_counts_df[sentiment_counts_df['Country'] == 'UK']
 
-
-#Настроения, на какую тему было больше всего постов и меньше всего постов
-
-#Отображение графика в Streamlit
+#constructing a histogram of the distribution of sentiment in the UK
+fig, ax = plt.subplots()
+sentiments = uk_data['Sentiment']
+counts = uk_data['Count_y']
+ax.bar(sentiments, counts)
+ax.set_xlabel('Sentiment')
+ax.set_ylabel('Count')
+ax.set_title('Distribution of Sentiments in the UK')
+plt.setp(ax.get_yticklabels(), rotation=45, ha='right',fontsize=5)
+ax.set_xticks(np.arange(len(sentiments)))
+plt.setp(ax.get_xticklabels(), rotation=45, ha='right',fontsize=5)
 st.pyplot(fig)
 
-# popular_posts = cleaned_df[cleaned_df['Likes'] >= 80]
+#visualization of top 10 hashtags
+hashtags = cleaned_df[['Hashtag1', 'Hashtag2']].values.flatten()
+#сounting the number of times each hashtag appears
+top_hashtags = pd.Series(hashtags).value_counts().head(10)
+st.dataframe(top_hashtags)
+fig, ax = plt.subplots(figsize=(10, 6))
+top_hashtags.plot(kind='bar', ax=ax, color='pink')
+ax.set_title('Top 10 Hashtags')
+ax.set_xlabel('Hashtag')
+ax.set_ylabel('Hashtag usage number')
+st.pyplot(fig)
 
-# # Выводим настроение для этих постов
-# if not popular_posts.empty:
-#     st.write("Самые популярные посты по количеству лайков:")
-#     st.write(popular_posts[['Sentiment', 'Likes']])
-# else:
-#     st.write("Нет постов с более чем 40 лайками.")
-# #Для большей наглядоности разделим эмоции на три категории 
-# fig, ax = plt.subplots(figsize=(10, 6))
-# ax.bar(popular_posts['Sentiment'], popular_posts['Likes'], color=plt.cm.viridis.colors)
-# ax.set_xlabel('Настроение')
-# ax.set_ylabel('Количество лайков')
-# ax.set_title('Самые популярные посты по количеству лайков')
-# plt.xticks(rotation=45, ha='right')  # Повернуть подписи на оси x для лучшей читаемости
+#calculate the change in average likes for all years
+average_likes_by_year = cleaned_df.groupby('Year')['Likes'].mean()
+average_likes_change = average_likes_by_year.diff()
+average_retweets_by_year = cleaned_df.groupby('Year')['Retweets'].mean()
+average_retweets_change = average_retweets_by_year.diff()
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(average_likes_by_year.index, average_likes_change, label='Changing likes', marker='o', linestyle='-', color='b')
+ax.plot(average_retweets_by_year.index, average_retweets_change, label='Changing retweets', marker='o', linestyle='-', color='r')
+ax.set_title('Change in average likes and retweets for all years')
+ax.set_xlabel('Year')
+ax.set_ylabel('Average value')
+ax.legend()
+ax.grid(True)
+st.pyplot(fig)
 
-# # Вывести диаграмму в Streamlit
-# st.pyplot(fig)
-# # Группируем данные по настроению и суммируем лайки
-# sentiment_likes_sum = popular_posts.groupby('Sentiment')['Likes'].sum()
-
-# # Построить круговую диаграмму
-# fig, ax = plt.subplots(figsize=(8, 8))
-# ax.pie(sentiment_likes_sum, labels=sentiment_likes_sum.index, autopct='%1.1f%%', startangle=140, colors=plt.cm.viridis.colors)
-# ax.set_title('Распределение лайков по настроению')
-
-# # Вывести диаграмму в Streamlit
-# st.pyplot(fig)
-
+#сorrelation calculation and display
+correlation = cleaned_df[['Likes', 'Retweets']].corr().iloc[0, 1]
+st.title('Correlation between likes and retweets')
+st.write("Let's look at the correlation between the number of likes and the number of retweets for each post in 2023.")
+st.write('Correlation between likes and retweets:', correlation)
+st.write('Likes and retweets chart:')
+fig, ax = plt.subplots()
+sns.scatterplot(x='Likes', y='Retweets', data=cleaned_df, ax=ax)
+st.pyplot(fig)
